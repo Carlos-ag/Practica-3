@@ -3,5 +3,5 @@ from app.routes import bicimad_bp
 
 def create_app():
     app = Flask(__name__)
-    app.register_blueprint(bicimad_bp, url_prefix="/api/v1")
+    app.register_blueprint(bicimad_bp, url_prefix="/api/v2")
     return app
