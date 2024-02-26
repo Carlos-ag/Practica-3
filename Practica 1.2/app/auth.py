@@ -7,6 +7,12 @@ users = {
 
 @auth.verify_password
 def verify_password(username, password):
-    if not username:
-        return 'guest'  # Identifica a un usuario no autenticado
-    return username if username in users and users[username] == password else None
+    if username == "guest":
+        #print("PASA GUEST")
+        return True
+    if username in users and users[username] == password:
+        #print("PASA OK")
+        return True
+    else:
+        #print("PASA NO OK")
+        return False

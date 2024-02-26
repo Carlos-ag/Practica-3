@@ -32,9 +32,6 @@ def get_available_dates():
 
 
 
-
-
-
 # 2.
 @bicimad_bp.route('/origin-stations', methods=['GET'])
 @auth.login_required
