@@ -3,6 +3,7 @@
 from flask import Blueprint, jsonify
 from app.db_connection import create_connection
 from app.auth import auth
+from flask import request
 
 bicimad_bp = Blueprint('bicimad_bp', __name__)
 
@@ -151,34 +152,50 @@ def add_movement():
     Añadimos un nuevo movimiento a la base de datos
     '''
     data = request.json
-    connection = create_connection()
-    cursor = connection.cursor()
-    query = f"""INSERT INTO bicimad (fecha, ageRange, user_type, idunplug_station, idplug_station, idunplug_base, idplug_base, travel_time, Fichero) 
-                VALUES ('{data['fecha']}', {data['ageRange']}, {data['user_type']}, {data['idunplug_station']}, 
-                        {data['idplug_station']}, {data['idunplug_base']}, {data['idplug_base']}, {data['travel_time']}, '000000')"""
-    cursor.execute(query)
-    connection.commit()
-    cursor.close()
-    connection.close()
-    return jsonify({"message": "Movement added successfully"}), 201
-
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        query = f"""INSERT INTO bicimad (fecha, ageRange, user_type, idunplug_station, idplug_station, idunplug_base, idplug_base, travel_time, Fichero) 
+                    VALUES ('{data['fecha']}', {data['ageRange']}, {data['user_type']}, {data['idunplug_station']}, 
+                            {data['idplug_station']}, {data['idunplug_base']}, {data['idplug_base']}, {data['travel_time']}, '000000')"""
+        cursor.execute(query)
+        connection.commit()
+        return jsonify({"message": "Movement added successfully"}), 201
+    except Exception as e:
+        # Optionally log the exception e
+        return jsonify({"error": "An error occurred while adding the movement", "details": str(e)}), 500
+    finally:
+        # Ensure the cursor and connection are closed even if an error occurs
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals():
+            connection.close()
 
 # 2.1
 @bicimad_bp.route('/update-movement', methods=['PUT'])
 @auth.login_required
 def update_movement():
     data = request.json
-    connection = create_connection()
-    cursor = connection.cursor()
-    query = f"""UPDATE bicimad SET travel_time = {data['travel_time']}
-                WHERE fecha = '{data['fecha']}' AND ageRange = {data['ageRange']} AND user_type = {data['user_type']}
-                AND idunplug_station = {data['idunplug_station']} AND idplug_station = {data['idplug_station']}
-                AND idunplug_base = {data['idunplug_base']} AND idplug_base = {data['idplug_base']}"""
-    cursor.execute(query)
-    connection.commit()
-    if cursor.rowcount == 0:
-        return jsonify({"message": "No entry found to update"}), 404
-    return jsonify({"message": "Movement updated successfully"}), 200
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        query = f"""UPDATE bicimad SET travel_time = {data['travel_time']}
+                    WHERE fecha = '{data['fecha']}' AND ageRange = {data['ageRange']} AND user_type = {data['user_type']}
+                    AND idunplug_station = {data['idunplug_station']} AND idplug_station = {data['idplug_station']}
+                    AND idunplug_base = {data['idunplug_base']} AND idplug_base = {data['idplug_base']}"""
+        cursor.execute(query)
+        connection.commit()
+        if cursor.rowcount == 0:
+            return jsonify({"message": "No entry found to update"}), 404
+        return jsonify({"message": "Movement updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": "An error occurred while updating the movement", "details": str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals():
+            connection.close()
+
 
 
 
@@ -187,12 +204,30 @@ def update_movement():
 @auth.login_required
 def delete_movement():
     data = request.args
-    conditions = " AND ".join([f"{key} = '{value}'" for key, value in data.items()])
-    connection = create_connection()
-    cursor = connection.cursor()
-    query = f"DELETE FROM bicimad WHERE {conditions}"
-    cursor.execute(query)
-    connection.commit()
-    if cursor.rowcount == 0:
-        return jsonify({"message": "No entries found to delete"}), 404
-    return jsonify({"message": "Movements deleted successfully"}), 200
+    try:
+        # Constructing conditions using placeholders for parameters
+        conditions = " AND ".join([f"{key} = %s" for key in data])
+        values = list(data.values())
+        connection = create_connection()
+        cursor = connection.cursor()
+        
+        # Forming the query with placeholders
+        query = f"DELETE FROM bicimad WHERE {conditions}"
+        print("______")
+        print(query)
+        print("______")
+        
+        # Executing the query with the values list
+        cursor.execute(query, values)
+        connection.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({"message": "No entries found to delete"}), 404
+        return jsonify({"message": "Movements deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": "An error occurred while deleting the movement", "details": str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals():
+            connection.close()

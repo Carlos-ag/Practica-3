@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 from app.db_connection import create_connection
 from app.auth import auth
+from flask import request 
 
 bicimad_bp = Blueprint('bicimad_bp', __name__)
 
@@ -134,13 +135,21 @@ def add_movement():
     Añadimos un nuevo movimiento a la base de datos
     '''
     data = request.json
-    connection = create_connection()
-    cursor = connection.cursor()
-    query = f"""INSERT INTO bicimad (fecha, ageRange, user_type, idunplug_station, idplug_station, idunplug_base, idplug_base, travel_time, Fichero) 
-                VALUES ('{data['fecha']}', {data['ageRange']}, {data['user_type']}, {data['idunplug_station']}, 
-                        {data['idplug_station']}, {data['idunplug_base']}, {data['idplug_base']}, {data['travel_time']}, '000000')"""
-    cursor.execute(query)
-    connection.commit()
-    cursor.close()
-    connection.close()
-    return jsonify({"message": "Movement added successfully"}), 201
+    try:
+        connection = create_connection()
+        cursor = connection.cursor()
+        query = f"""INSERT INTO bicimad (fecha, ageRange, user_type, idunplug_station, idplug_station, idunplug_base, idplug_base, travel_time, Fichero) 
+                    VALUES ('{data['fecha']}', {data['ageRange']}, {data['user_type']}, {data['idunplug_station']}, 
+                            {data['idplug_station']}, {data['idunplug_base']}, {data['idplug_base']}, {data['travel_time']}, '000000')"""
+        cursor.execute(query)
+        connection.commit()
+        return jsonify({"message": "Movement added successfully"}), 201
+    except Exception as e:
+        # Optionally log the exception e
+        return jsonify({"error": "An error occurred while adding the movement", "details": str(e)}), 500
+    finally:
+        # Ensure the cursor and connection are closed even if an error occurs
+        if 'cursor' in locals():
+            cursor.close()
+        if 'connection' in locals():
+            connection.close()
